@@ -1,27 +1,42 @@
 /*
 Copyright © 2024 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
 import (
 	"fmt"
+	"gocliscaff/common"
+	"gocliscaff/files"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
+
+var Filecount int
+var Minfilesize int64
 
 // filesCmd represents the files command
 var filesCmd = &cobra.Command{
 	Use:   "files",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Show the largest files in the given path.",
+	Long:  `Quickly scan a directory and find large files.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("files called")
+		if Debug {
+			common.LogFlags()
+		}
+
+		filesFound, err := files.ReadDirRecursively(Path)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		if Filecount > len(filesFound) {
+			Filecount = len(filesFound)
+		}
+
+		filesFound = filesFound[0:Filecount]
+		files.PrintResults(filesFound)
 	},
 }
 
@@ -37,4 +52,9 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// filesCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	filesCmd.PersistentFlags().IntVarP(&Filecount, "filecount", "f", 10, "Limit the number of files returned")
+	viper.BindPFlag("filecount", filesCmd.PersistentFlags().Lookup("filecount"))
+
+	filesCmd.PersistentFlags().Int64VarP(&Minfilesize, "minfilesize", "", 50, "Minimum size for files in search in MB.")
+	viper.BindPFlag("minfilesize", filesCmd.PersistentFlags().Lookup("minfilesize"))
 }
